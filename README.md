@@ -5,7 +5,7 @@ Google Flights 실시간 데이터 기반 최저가 항공권 검색 CLI.
 ## 설치
 
 ```bash
-pip install git+https://github.com/your-username/flight-price-tracker.git
+pip install  git+https://github.dop.admin.rnd.aws.kakaoinsure.net:mark-sc/filight-price-tracker.git 
 ```
 
 또는 로컬:
