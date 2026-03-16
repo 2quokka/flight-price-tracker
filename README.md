@@ -12,6 +12,25 @@ source .venv/bin/activate
 pip install .
 ```
 
+### 로컬 개발 환경 설치
+
+> Python 3.9 이상이 필요합니다.
+
+```bash
+git clone git@github.dop.admin.rnd.aws.kakaoinsure.net:mark-sc/filight-price-tracker.git
+cd filight-price-tracker
+
+# 가상환경 생성 및 활성화
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# 개발 모드 설치 (소스 수정 시 재설치 불필요)
+pip install -e .
+
+# 설치 확인
+flights --help
+```
+
 ## 사용법
 
 설치 후 `flights` 명령어로 실행:
