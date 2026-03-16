@@ -1,6 +1,7 @@
-# ✈️ 김포↔제주 최저가 항공권 검색기
+# ✈️ 최저가 항공권 검색기
 
 Google Flights 실시간 데이터 기반 최저가 항공권 검색 CLI.
+전 세계 모든 공항 간 편도/왕복/당일치기 검색을 지원합니다.
 
 ## 설치
 
@@ -17,24 +18,39 @@ pip install .
 설치 후 `flights` 명령어로 실행:
 
 ```bash
-# 당일치기 최저가 (출발/도착 시간 필터)
-flights --start 2026-04-01 --end 2026-04-30 \
-  --depart-after 08:00 --depart-before 10:00 \
-  --return-after 17:00 --arrive-by 21:30 \
-  --top 10
-
-# 편도 최저가
+# 편도 최저가 (김포→제주)
 flights --start 2026-04-01 --end 2026-04-10
 
 # 왕복 최저가
 flights --depart-start 2026-04-01 --depart-end 2026-04-05 \
         --return-start 2026-04-03 --return-end 2026-04-07
 
-# 공항 변경 (기본: GMP↔CJU)
-flights --from PUS --to CJU --start 2026-04-01 --end 2026-04-10
+# 당일치기 (출발/도착 시간 필터)
+flights --start 2026-04-01 --end 2026-04-30 \
+  --depart-after 08:00 --depart-before 10:00 \
+  --return-after 17:00 --arrive-by 21:30
+```
+
+### 국제선 예시
+
+```bash
+# 인천 → 오사카 편도
+flights --from ICN --to KIX --start 2026-10-01 --end 2026-10-07
+
+# 인천 ↔ 세부 왕복
+flights --from ICN --to CEB \
+  --depart-start 2026-10-02 --depart-end 2026-10-02 \
+  --return-start 2026-10-07 --return-end 2026-10-07 \
+  --depart-after 06:00 --depart-before 12:00 \
+  --return-after 17:00
+
+# 인천 ↔ 방콕 왕복
+flights --from ICN --to BKK \
+  --depart-start 2026-07-01 --depart-end 2026-07-10 \
+  --return-start 2026-07-08 --return-end 2026-07-15
 
 # CSV 저장
-flights --start 2026-04-01 --end 2026-04-10 --output results.csv
+flights --from ICN --to NRT --start 2026-10-01 --end 2026-10-07 --output results.csv
 ```
 
 ### 옵션
@@ -45,12 +61,24 @@ flights --start 2026-04-01 --end 2026-04-10 --output results.csv
 | `--to` | 도착 공항 IATA 코드 | CJU |
 | `--start` | 검색 시작일 (YYYY-MM-DD) | - |
 | `--end` | 검색 종료일 | --start와 동일 |
+| `--depart-start` | 가는날 시작일 (왕복) | - |
+| `--depart-end` | 가는날 종료일 (왕복) | - |
+| `--return-start` | 오는날 시작일 (왕복) | - |
+| `--return-end` | 오는날 종료일 (왕복) | - |
 | `--depart-after` | 가는편 출발 최소 시각 (HH:MM) | - |
 | `--depart-before` | 가는편 출발 최대 시각 | 10:00 |
 | `--return-after` | 오는편 출발 최소 시각 | 17:00 |
 | `--arrive-by` | 오는편 도착 마감 시각 | 21:30 |
 | `--top` | 결과 상위 N개 | 10 |
 | `--output` | 저장 파일 (.csv / .json) | - |
+
+### 모드 자동 감지
+
+| 조건 | 모드 |
+|------|------|
+| `--start` + `--depart-after` | 당일치기 |
+| `--depart-start` | 왕복 |
+| `--start` only | 편도 |
 
 ## 회사 프록시 (Menlo Security 등)
 
