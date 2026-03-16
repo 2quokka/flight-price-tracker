@@ -3,6 +3,33 @@
 Google Flights 실시간 데이터 기반 최저가 항공권 검색 CLI.
 전 세계 모든 공항 간 편도/왕복/당일치기 검색을 지원합니다.
 
+## 동작 원리
+
+[`fast-flights`](https://github.com/AWeirdDev/flights) 라이브러리를 통해 Google Flights 웹페이지를 스크래핑합니다.
+
+- 데이터 소스: `https://www.google.com/travel/flights` (공식 API 아님, 웹 스크래핑)
+- 파싱: Google Flights의 Protobuf 응답을 `fast-flights`가 디코딩
+- 검색 단위: 날짜 1일 = HTTP 요청 1회, 편도 기준
+- 병렬 처리: `ThreadPoolExecutor(max_workers=4)`로 동시 4개 날짜 검색
+- 좌석: 이코노미, 성인 1명 기준
+- 결과: 각 날짜별 최저가 1건 추출 후 정렬
+
+### 기술 스택
+
+| 구성 | 라이브러리 | 역할 |
+|------|-----------|------|
+| 스크래핑 | `fast-flights` 2.2 | Google Flights Protobuf 파싱 |
+| HTTP | `requests` | 프록시 환경 대응 (CA 인증서 지정) |
+| 출력 | `rich` | 터미널 테이블 포맷팅 |
+| 직렬화 | `protobuf` | Google Flights 응답 디코딩 (fast-flights 의존) |
+| HTML 파싱 | `selectolax` | 응답 HTML 파싱 (fast-flights 의존) |
+
+### 제약 사항
+
+- Google Flights 웹 스크래핑이므로 Google 측 변경 시 동작이 깨질 수 있음
+- 과도한 요청 시 일시적 차단 가능 (4 workers로 제한)
+- LCC 최저가 기준이라 수하물/좌석 선택 비용 별도
+
 ## 설치
 
 ```bash
