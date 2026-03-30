@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["flight_tracker"]
+packages = ["flight_tracker", "flight_tracker.providers"]
 py-modules = ["main"]
 
 [project.scripts]
