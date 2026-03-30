@@ -6,6 +6,7 @@ from datetime import date, datetime
 from flight_tracker.models import RoundTripCombo
 from flight_tracker.scraper import search_date_range, search_daytrip
 from flight_tracker.formatter import print_oneway, print_roundtrip, print_daytrip, save_csv, save_json, console
+from flight_tracker.providers import PROVIDERS, get_provider
 
 
 def parse_date(s: str) -> date:
@@ -48,8 +49,12 @@ def main():
 
     p.add_argument("--top", type=int, default=10, help="TOP N (기본: 10)")
     p.add_argument("--output", help="결과 저장 (.csv/.json)")
+    p.add_argument("--provider", nargs="*", help=f"사용할 프로바이더 (기본: 전체). 선택: {list(PROVIDERS.keys())}")
 
     args = p.parse_args()
+
+    # 프로바이더 설정
+    providers = [get_provider(n) for n in args.provider] if args.provider else None
 
     # 당일치기 모드: --start + --depart-after 있으면
     if args.start and args.depart_after:
@@ -64,7 +69,7 @@ def main():
         combos = search_daytrip(
             args.from_airport, args.to_airport,
             parse_date(args.start), parse_date(args.end or args.start),
-            da, db, ra, ab, args.top,
+            da, db, ra, ab, args.top, providers=providers,
         )
         print_daytrip(combos, args.from_airport, args.to_airport, args.top)
 
@@ -72,16 +77,16 @@ def main():
     elif args.depart_start:
         console.print(f"\n✈️  [bold]왕복 검색: {args.from_airport} ↔ {args.to_airport}[/bold]\n")
         console.print("[cyan]▶ 가는편 검색[/cyan]")
-        outbound = search_date_range(args.from_airport, args.to_airport, parse_date(args.depart_start), parse_date(args.depart_end))
+        outbound = search_date_range(args.from_airport, args.to_airport, parse_date(args.depart_start), parse_date(args.depart_end), providers=providers)
         console.print("\n[cyan]▶ 오는편 검색[/cyan]")
-        inbound = search_date_range(args.to_airport, args.from_airport, parse_date(args.return_start), parse_date(args.return_end))
+        inbound = search_date_range(args.to_airport, args.from_airport, parse_date(args.return_start), parse_date(args.return_end), providers=providers)
         combos = build_roundtrip_combos(outbound, inbound)
         print_roundtrip(combos, args.from_airport, args.to_airport, args.top)
 
     # 편도 모드
     elif args.start:
         console.print(f"\n✈️  [bold]편도 검색: {args.from_airport} → {args.to_airport}[/bold]\n")
-        results = search_date_range(args.from_airport, args.to_airport, parse_date(args.start), parse_date(args.end or args.start))
+        results = search_date_range(args.from_airport, args.to_airport, parse_date(args.start), parse_date(args.end or args.start), providers=providers)
         print_oneway(results, args.from_airport, args.to_airport)
     else:
         p.print_help()
