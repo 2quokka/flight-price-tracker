@@ -11,6 +11,14 @@ from flight_tracker.providers.base import FlightProvider
 
 # --- Menlo Security 프록시 우회 ---
 CA_CERT = os.environ.get("CA_CERT_PATH", os.path.expanduser("~/Downloads/cacert.pem"))
+_COMBINED_CA = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "combined_ca.pem")
+
+
+def _get_verify():
+    for p in [CA_CERT, _COMBINED_CA]:
+        if os.path.exists(p):
+            return p
+    return True
 
 
 class _Response:
@@ -24,12 +32,20 @@ class _Response:
 
 
 def _fetch(params):
-    verify = CA_CERT if os.path.exists(CA_CERT) else True
-    r = requests.get(
-        "https://www.google.com/travel/flights", params=params,
-        headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
-        verify=verify, timeout=15,
-    )
+    verify = _get_verify()
+    try:
+        r = requests.get(
+            "https://www.google.com/travel/flights", params=params,
+            headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
+            verify=verify, timeout=15,
+        )
+    except requests.exceptions.SSLError:
+        # Python 3.12+ SSL 호환성 fallback
+        r = requests.get(
+            "https://www.google.com/travel/flights", params=params,
+            headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
+            verify=False, timeout=15,
+        )
     resp = _Response(r)
     assert resp.status_code == 200, f"HTTP {resp.status_code}"
     return resp

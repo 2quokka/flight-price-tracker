@@ -2,3 +2,4 @@ fast-flights>=2.2
 rich>=13.0
 requests>=2.28
 typing_extensions
+playwright>=1.40
