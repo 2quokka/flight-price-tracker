@@ -5,14 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "flight-price-tracker"
 version = "1.0.0"
-description = "김포↔제주 최저가 항공권 검색기 (Google Flights)"
+description = "멀티 플랫폼 최저가 항공권 검색기 (Google Flights + Trip.com)"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "fast-flights>=2.2",
     "rich>=13.0",
     "requests>=2.28",
     "typing_extensions",
+    "playwright>=1.40",
+    "flights>=0.8",
 ]
 
 [tool.setuptools]
