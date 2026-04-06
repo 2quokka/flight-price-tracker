@@ -105,6 +105,11 @@ def format_price(val):
     return f"₩{int(val):,}"
 
 
+def flight_url(source: str, from_code: str, to_code: str, date_str: str) -> str:
+    """출처별 항공권 검색 URL 생성"""
+    return f"https://www.google.com/travel/flights?q={from_code}+to+{to_code}+on+{date_str}&hl=ko&curr=KRW"
+
+
 # ── 페이지 설정 ──
 st.set_page_config(page_title="✈️ 항공권 최저가 검색기", page_icon="✈️", layout="wide")
 
@@ -238,11 +243,13 @@ with tab_oneway:
 
                 df = pd.DataFrame([
                     {"날짜": f.date, "항공사": f.airline, "출발": f.departure, "도착": f.arrival,
-                     "소요시간": f.duration, "가격": f.price, "출처": f.source}
+                     "소요시간": f.duration, "가격": f.price,
+                     "출처": flight_url(f.source, from_code, to_code, f.date)}
                     for f in results[:top_n]
                 ])
                 st.dataframe(
                     df.style.format({"가격": "₩{:,.0f}"}).background_gradient(subset=["가격"], cmap="YlOrRd_r"),
+                    column_config={"출처": st.column_config.LinkColumn("출처", display_text="🔗 검색")},
                     use_container_width=True, hide_index=True
                 )
 
@@ -306,12 +313,18 @@ with tab_roundtrip:
                     {"가는날": c.outbound.date, "가는편": c.outbound.airline,
                      "가는편 가격": c.outbound.price, "오는날": c.inbound.date,
                      "오는편": c.inbound.airline, "오는편 가격": c.inbound.price,
-                     "합계": c.total_price}
+                     "합계": c.total_price,
+                     "가는편 검색": flight_url("", from_code, to_code, c.outbound.date),
+                     "오는편 검색": flight_url("", to_code, from_code, c.inbound.date)}
                     for c in combos[:top_n_rt]
                 ])
                 st.dataframe(
                     df.style.format({"가는편 가격": "₩{:,.0f}", "오는편 가격": "₩{:,.0f}", "합계": "₩{:,.0f}"})
                     .background_gradient(subset=["합계"], cmap="YlOrRd_r"),
+                    column_config={
+                        "가는편 검색": st.column_config.LinkColumn("가는편 검색", display_text="🔗"),
+                        "오는편 검색": st.column_config.LinkColumn("오는편 검색", display_text="🔗"),
+                    },
                     use_container_width=True, hide_index=True
                 )
             else:
@@ -392,12 +405,14 @@ with tab_daytrip:
                      "출발→도착": f"{c.outbound.departure} → {c.outbound.arrival}",
                      "가는편 가격": c.outbound.price, "오는편": c.inbound.airline,
                      "출발→도착 ": f"{c.inbound.departure} → {c.inbound.arrival}",
-                     "오는편 가격": c.inbound.price, "합계": c.total_price}
+                     "오는편 가격": c.inbound.price, "합계": c.total_price,
+                     "검색": flight_url("", from_code, to_code, c.outbound.date)}
                     for i, c in enumerate(combos[:top_n_dt])
                 ])
                 st.dataframe(
                     df.style.format({"가는편 가격": "₩{:,.0f}", "오는편 가격": "₩{:,.0f}", "합계": "₩{:,.0f}"})
                     .background_gradient(subset=["합계"], cmap="YlOrRd_r"),
+                    column_config={"검색": st.column_config.LinkColumn("검색", display_text="🔗")},
                     use_container_width=True, hide_index=True
                 )
             else:
