@@ -5,23 +5,27 @@ from typing import List
 from flight_tracker.models import FlightResult
 from flight_tracker.providers.base import FlightProvider
 
-# fli의 curl_cffi SSL + impersonate 문제 해결 (프록시 호환)
+# fli의 curl_cffi SSL + impersonate 문제 해결 + KRW 통화 설정
 def _patch_fli_ssl():
     try:
         import fli.search.client as client_mod
         from curl_cffi import requests as cffi_requests
 
-        _orig = client_mod.Client.__init__
         def _patched_init(self):
             self._client = cffi_requests.Session(verify=False)
             self._client.headers.update(self.DEFAULT_HEADERS)
         client_mod.Client.__init__ = _patched_init
 
-        # post/get에서 impersonate 파라미터 제거 (프록시가 차단함)
         import fli.search.flights as flights_mod
+        # KRW 통화로 응답받기 위해 URL에 hl=ko&gl=KR 추가
+        flights_mod.SearchFlights.BASE_URL = (
+            "https://www.google.com/_/FlightsFrontendUi/data/"
+            "travel.frontend.flights.FlightsFrontendService/GetShoppingResults"
+            "?hl=ko&gl=KR"
+        )
+
         _orig_search = flights_mod.SearchFlights.search
         def _patched_search(self, filters, top_n=5):
-            # client.post의 impersonate를 무시하도록 패치
             _orig_post = self.client._client.post
             def _no_impersonate_post(*args, **kwargs):
                 kwargs.pop("impersonate", None)
@@ -73,10 +77,10 @@ class FliProvider(FlightProvider):
                 results.append(FlightResult(
                     date=date_str,
                     airline=leg.airline.value if leg.airline else "Unknown",
-                    departure=str(leg.departure_datetime) if leg.departure_datetime else "",
-                    arrival=str(leg.arrival_datetime) if leg.arrival_datetime else "",
+                    departure=leg.departure_datetime.strftime("%-I:%M %p") if leg.departure_datetime else "",
+                    arrival=leg.arrival_datetime.strftime("%-I:%M %p") if leg.arrival_datetime else "",
                     price=int(f.price),
-                    duration=f"{f.duration}min" if f.duration else "",
+                    duration=f"{f.duration // 60}h {f.duration % 60}m" if f.duration else "",
                     stops=f.stops or 0,
                     source="fli",
                 ))
