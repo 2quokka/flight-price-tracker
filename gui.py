@@ -103,10 +103,11 @@ def format_price(val):
     return f"₩{int(val):,}"
 
 
-def flight_url(from_code: str, to_code: str, date_str: str, oneway: bool = False) -> str:
-    """출처별 항공권 검색 URL 생성"""
+def flight_url(from_code: str, to_code: str, date_str: str, oneway: bool = False, price: int = 0) -> str:
+    """출처별 항공권 검색 URL 생성 (price는 URL fragment로 인코딩)"""
     base = f"https://www.google.com/travel/flights?q={from_code}+to+{to_code}+on+{date_str}&hl=ko&curr=KRW"
-    return base + "&tt=oneway" if oneway else base
+    url = base + "&tt=oneway" if oneway else base
+    return f"{url}#₩{price:,}"
 
 
 # ── 페이지 설정 ──
@@ -246,13 +247,13 @@ with tab_oneway:
 
                 df = pd.DataFrame([
                     {"날짜": f.date, "항공사": f.airline, "출발": f.departure, "도착": f.arrival,
-                     "소요시간": f.duration, "가격": f.price,
-                     "출처": flight_url(from_code, to_code, f.date, oneway=True)}
+                     "소요시간": f.duration,
+                     "가격": flight_url(from_code, to_code, f.date, oneway=True, price=f.price)}
                     for f in results[:top_n]
                 ])
                 st.dataframe(
-                    df.style.format({"가격": "₩{:,.0f}"}).background_gradient(subset=["가격"], cmap="YlOrRd_r"),
-                    column_config={"출처": st.column_config.LinkColumn("출처", display_text="🔗 검색")},
+                    df,
+                    column_config={"가격": st.column_config.LinkColumn("가격", display_text=r"#(.+)")},
                     use_container_width=True, hide_index=True
                 )
 
@@ -319,20 +320,14 @@ with tab_roundtrip:
 
                 df = pd.DataFrame([
                     {"가는날": c.outbound.date, "가는편": c.outbound.airline,
-                     "가는편 가격": c.outbound.price, "오는날": c.inbound.date,
-                     "오는편": c.inbound.airline, "오는편 가격": c.inbound.price,
-                     "합계": c.total_price,
-                     "가는편 검색": flight_url(from_code, to_code, c.outbound.date),
-                     "오는편 검색": flight_url(to_code, from_code, c.inbound.date)}
+                     "가는편 가격": f"₩{c.outbound.price:,}", "오는날": c.inbound.date,
+                     "오는편": c.inbound.airline, "오는편 가격": f"₩{c.inbound.price:,}",
+                     "합계": flight_url(from_code, to_code, c.outbound.date, price=c.total_price)}
                     for c in combos[:top_n_rt]
                 ])
                 st.dataframe(
-                    df.style.format({"가는편 가격": "₩{:,.0f}", "오는편 가격": "₩{:,.0f}", "합계": "₩{:,.0f}"})
-                    .background_gradient(subset=["합계"], cmap="YlOrRd_r"),
-                    column_config={
-                        "가는편 검색": st.column_config.LinkColumn("가는편 검색", display_text="🔗"),
-                        "오는편 검색": st.column_config.LinkColumn("오는편 검색", display_text="🔗"),
-                    },
+                    df,
+                    column_config={"합계": st.column_config.LinkColumn("합계", display_text=r"#(.+)")},
                     use_container_width=True, hide_index=True
                 )
 
@@ -416,16 +411,15 @@ with tab_daytrip:
                 df = pd.DataFrame([
                     {"순위": i+1, "날짜": c.outbound.date, "가는편": c.outbound.airline,
                      "출발→도착": f"{c.outbound.departure} → {c.outbound.arrival}",
-                     "가는편 가격": c.outbound.price, "오는편": c.inbound.airline,
+                     "가는편 가격": f"₩{c.outbound.price:,}", "오는편": c.inbound.airline,
                      "출발→도착 ": f"{c.inbound.departure} → {c.inbound.arrival}",
-                     "오는편 가격": c.inbound.price, "합계": c.total_price,
-                     "검색": flight_url(from_code, to_code, c.outbound.date)}
+                     "오는편 가격": f"₩{c.inbound.price:,}",
+                     "합계": flight_url(from_code, to_code, c.outbound.date, price=c.total_price)}
                     for i, c in enumerate(combos[:top_n_dt])
                 ])
                 st.dataframe(
-                    df.style.format({"가는편 가격": "₩{:,.0f}", "오는편 가격": "₩{:,.0f}", "합계": "₩{:,.0f}"})
-                    .background_gradient(subset=["합계"], cmap="YlOrRd_r"),
-                    column_config={"검색": st.column_config.LinkColumn("검색", display_text="🔗")},
+                    df,
+                    column_config={"합계": st.column_config.LinkColumn("합계", display_text=r"#(.+)")},
                     use_container_width=True, hide_index=True
                 )
 
