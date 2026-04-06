@@ -73,12 +73,16 @@ class FliProvider(FlightProvider):
                 leg = f.legs[0] if f.legs else None
                 if not leg or f.price <= 0:
                     continue
+                price = int(f.price)
+                # 서버 IP가 해외인 경우 USD로 반환됨 — KRW 가격은 최소 10,000 이상
+                if price < 10000:
+                    price = int(price * 1350)
                 results.append(FlightResult(
                     date=date_str,
                     airline=leg.airline.value if leg.airline else "Unknown",
                     departure=leg.departure_datetime.strftime("%H:%M") if leg.departure_datetime else "",
                     arrival=leg.arrival_datetime.strftime("%H:%M") if leg.arrival_datetime else "",
-                    price=int(f.price),
+                    price=price,
                     duration=f"{f.duration // 60}h {f.duration % 60}m" if f.duration else "",
                     stops=f.stops or 0,
                     source="fli",
