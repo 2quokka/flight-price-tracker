@@ -7,3 +7,5 @@ build/
 *.pem
 results.csv
 results.json
+vacation_results.json
+.kiro-last-prompt-*

@@ -17,6 +17,13 @@ dependencies = [
     "flights>=0.8",
 ]
 
+[project.optional-dependencies]
+gui = [
+    "streamlit>=1.30",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+]
+
 [tool.setuptools]
 packages = ["flight_tracker", "flight_tracker.providers"]
 py-modules = ["main"]
