@@ -257,10 +257,6 @@ with tab_oneway:
                     use_container_width=True, hide_index=True
                 )
 
-                st.subheader("📊 날짜별 가격 추이")
-                chart_df = df[["날짜", "가격"]].set_index("날짜")
-                st.bar_chart(chart_df)
-
                 st.session_state.search_history.insert(0, {
                     "type": "편도", "route": f"{from_label} → {to_label}",
                     "best": format_price(best.price), "count": len(results), "df": df,
@@ -442,7 +438,8 @@ with tab_history:
 
         for i, h in enumerate(history[:10]):
             with st.expander(f"{'🔄' if h['type'] == '왕복' else '☀️' if h['type'] == '당일치기' else '✈️'} [{h['type']}] {h['route']} — 최저가 {h['best']} ({h['count']}건)", expanded=(i == 0)):
-                st.dataframe(h["df"], use_container_width=True, hide_index=True)
+                link_col = "가격" if h["type"] == "편도" else "합계"
+                st.dataframe(h["df"], column_config={link_col: st.column_config.LinkColumn(link_col, display_text=r"#(.+)")}, use_container_width=True, hide_index=True)
     else:
         st.info("검색 결과가 없습니다. 편도/왕복/당일치기 탭에서 검색해보세요.")
 
