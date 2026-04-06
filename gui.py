@@ -103,9 +103,10 @@ def format_price(val):
     return f"₩{int(val):,}"
 
 
-def flight_url(source: str, from_code: str, to_code: str, date_str: str) -> str:
+def flight_url(from_code: str, to_code: str, date_str: str, oneway: bool = False) -> str:
     """출처별 항공권 검색 URL 생성"""
-    return f"https://www.google.com/travel/flights?q={from_code}+to+{to_code}+on+{date_str}&hl=ko&curr=KRW"
+    base = f"https://www.google.com/travel/flights?q={from_code}+to+{to_code}+on+{date_str}&hl=ko&curr=KRW"
+    return base + "&tt=oneway" if oneway else base
 
 
 # ── 페이지 설정 ──
@@ -246,7 +247,7 @@ with tab_oneway:
                 df = pd.DataFrame([
                     {"날짜": f.date, "항공사": f.airline, "출발": f.departure, "도착": f.arrival,
                      "소요시간": f.duration, "가격": f.price,
-                     "출처": flight_url(f.source, from_code, to_code, f.date)}
+                     "출처": flight_url(from_code, to_code, f.date, oneway=True)}
                     for f in results[:top_n]
                 ])
                 st.dataframe(
@@ -321,8 +322,8 @@ with tab_roundtrip:
                      "가는편 가격": c.outbound.price, "오는날": c.inbound.date,
                      "오는편": c.inbound.airline, "오는편 가격": c.inbound.price,
                      "합계": c.total_price,
-                     "가는편 검색": flight_url("", from_code, to_code, c.outbound.date),
-                     "오는편 검색": flight_url("", to_code, from_code, c.inbound.date)}
+                     "가는편 검색": flight_url(from_code, to_code, c.outbound.date),
+                     "오는편 검색": flight_url(to_code, from_code, c.inbound.date)}
                     for c in combos[:top_n_rt]
                 ])
                 st.dataframe(
@@ -418,7 +419,7 @@ with tab_daytrip:
                      "가는편 가격": c.outbound.price, "오는편": c.inbound.airline,
                      "출발→도착 ": f"{c.inbound.departure} → {c.inbound.arrival}",
                      "오는편 가격": c.inbound.price, "합계": c.total_price,
-                     "검색": flight_url("", from_code, to_code, c.outbound.date)}
+                     "검색": flight_url(from_code, to_code, c.outbound.date)}
                     for i, c in enumerate(combos[:top_n_dt])
                 ])
                 st.dataframe(
