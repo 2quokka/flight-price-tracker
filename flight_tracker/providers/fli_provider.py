@@ -2,8 +2,19 @@
 import os
 from typing import List
 
+import requests as _requests
+
 from flight_tracker.models import FlightResult
 from flight_tracker.providers.base import FlightProvider
+
+
+def _get_usd_krw() -> float:
+    """실시간 USD/KRW 환율 조회 (frankfurter.dev, 무료/키 불필요)"""
+    try:
+        r = _requests.get("https://api.frankfurter.dev/latest?from=USD&to=KRW", timeout=5)
+        return r.json()["rates"]["KRW"]
+    except Exception:
+        return 1350.0  # fallback
 
 
 def _patch_fli():
@@ -76,7 +87,7 @@ class FliProvider(FlightProvider):
                 price = int(f.price)
                 # 서버 IP가 해외인 경우 USD로 반환됨 — KRW 가격은 최소 10,000 이상
                 if price < 10000:
-                    price = int(price * 1350)
+                    price = int(price * _get_usd_krw())
                 results.append(FlightResult(
                     date=date_str,
                     airline=leg.airline.value if leg.airline else "Unknown",
