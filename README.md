@@ -1,13 +1,14 @@
 # ✈️ 최저가 항공권 검색기
 
-멀티 플랫폼 실시간 데이터 기반 최저가 항공권 검색 CLI.
-전 세계 모든 공항 간 편도/왕복/당일치기 검색을 지원합니다.
+멀티 플랫폼 실시간 데이터 기반 최저가 항공권 검색기.
+CLI와 웹 GUI를 모두 지원하며, 전 세계 모든 공항 간 편도/왕복/당일치기 검색이 가능합니다.
 
 ## 지원 플랫폼
 
 | 플랫폼 | 방식 | 특징 |
 |--------|------|------|
 | **Google Flights** | `fast-flights` 라이브러리 (Protobuf) | 기본 제공, 넓은 커버리지 |
+| **Fli** | `flights` 라이브러리 | 경량, 빠른 응답 |
 | **Trip.com** | Playwright (헤드리스 Chrome) | 국제선 강점, 아시아 노선 특가 |
 
 여러 플랫폼의 결과를 병합하여 같은 항공편의 최저가를 자동으로 선별합니다.
@@ -26,9 +27,13 @@
 | 구성 | 라이브러리 | 역할 |
 |------|-----------|------|
 | Google Flights | `fast-flights` 2.2 | Protobuf 파싱 |
+| Fli | `flights` 0.8+ | 항공편 검색 |
 | Trip.com | `playwright` 1.40+ | 헤드리스 Chrome 스크래핑 |
 | HTTP | `requests` | 프록시 환경 대응 |
-| 출력 | `rich` | 터미널 테이블 포맷팅 |
+| CLI 출력 | `rich` | 터미널 테이블 포맷팅 |
+| Web GUI | `streamlit` 1.30+ | 웹 대시보드 |
+| 데이터 | `pandas` 2.0+ | 테이블 처리 + 스타일링 |
+| 시각화 | `matplotlib` 3.7+ | 가격 히트맵 |
 
 ### 아키텍처
 
@@ -37,11 +42,14 @@ flight_tracker/
 ├── providers/
 │   ├── base.py          # FlightProvider ABC
 │   ├── google.py        # Google Flights (fast-flights)
+│   ├── fli_provider.py  # Fli (flights)
 │   └── tripcom.py       # Trip.com (Playwright)
 ├── aggregator.py        # 멀티 프로바이더 병렬 검색 + 중복 제거
 ├── scraper.py           # 하위 호환 래퍼
 ├── models.py            # FlightResult, RoundTripCombo
 └── formatter.py         # Rich 테이블 출력, CSV/JSON 저장
+gui.py                   # Streamlit 웹 GUI
+main.py                  # CLI 진입점
 ```
 
 ### 제약 사항
@@ -86,6 +94,28 @@ flights --help
 ```
 
 ## 사용법
+
+### 웹 GUI
+
+```bash
+pip install -r requirements.txt
+streamlit run gui.py
+```
+
+브라우저에서 `http://localhost:8501` 로 접속하면 웹 GUI가 열립니다.
+
+| 탭 | 기능 |
+|----|------|
+| ✈️ 편도 | 날짜 범위 내 최저가 검색 + 가격 추이 차트 |
+| 🔄 왕복 | 가는편/오는편 날짜 조합 최저가 |
+| ☀️ 당일치기 | 출발/도착 시간대 필터 기반 당일 왕복 |
+| 📂 저장된 결과 | 목적지별 요약 카드 + 연휴별 비교 차트 |
+
+- 한글로 공항 검색 가능 (60+ 공항)
+- 사이드바에서 검색 엔진(Google Flights / Fli / Trip.com) 선택
+- 가격 컬럼에 히트맵 자동 적용
+
+### CLI
 
 설치 후 `flights` 명령어로 실행:
 
