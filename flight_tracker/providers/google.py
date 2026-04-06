@@ -59,13 +59,24 @@ def _parse_price(price_str: str) -> int:
     return int(nums) if nums else 0
 
 
+def _to_24h(t: str) -> str:
+    """'8:00 AM' → '08:00' 변환"""
+    m = re.match(r"(\d+):(\d+)\s*(AM|PM)", t or "")
+    if not m:
+        return t or ""
+    h, mi, ap = int(m.group(1)), m.group(2), m.group(3)
+    if ap == "PM" and h != 12: h += 12
+    if ap == "AM" and h == 12: h = 0
+    return f"{h:02d}:{mi}"
+
+
 def _parse_flight(f: Flight, search_date: str) -> Optional[FlightResult]:
     price = _parse_price(f.price)
     if price == 0:
         return None
     return FlightResult(
         date=search_date, airline=f.name or "Unknown",
-        departure=f.departure or "", arrival=f.arrival or "",
+        departure=_to_24h(f.departure), arrival=_to_24h(f.arrival),
         price=price, duration=f.duration or "",
         stops=f.stops if f.stops is not None else 0,
         source="google",

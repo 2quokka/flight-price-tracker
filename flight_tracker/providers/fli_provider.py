@@ -5,8 +5,8 @@ from typing import List
 from flight_tracker.models import FlightResult
 from flight_tracker.providers.base import FlightProvider
 
-# fli의 curl_cffi SSL + impersonate 문제 해결 + KRW 통화 설정
-def _patch_fli_ssl():
+
+def _patch_fli():
     try:
         import fli.search.client as client_mod
         from curl_cffi import requests as cffi_requests
@@ -14,14 +14,13 @@ def _patch_fli_ssl():
         def _patched_init(self):
             self._client = cffi_requests.Session(verify=False)
             self._client.headers.update(self.DEFAULT_HEADERS)
+            self._client.headers["Accept-Language"] = "ko-KR,ko;q=0.9"
         client_mod.Client.__init__ = _patched_init
 
         import fli.search.flights as flights_mod
-        # KRW 통화로 응답받기 위해 URL에 hl=ko&gl=KR 추가
         flights_mod.SearchFlights.BASE_URL = (
-            "https://www.google.com/_/FlightsFrontendUi/data/"
+            "https://www.google.co.kr/_/FlightsFrontendUi/data/"
             "travel.frontend.flights.FlightsFrontendService/GetShoppingResults"
-            "?hl=ko&gl=KR"
         )
 
         _orig_search = flights_mod.SearchFlights.search
@@ -36,7 +35,7 @@ def _patch_fli_ssl():
     except ImportError:
         pass
 
-_patch_fli_ssl()
+_patch_fli()
 
 
 class FliProvider(FlightProvider):
@@ -77,8 +76,8 @@ class FliProvider(FlightProvider):
                 results.append(FlightResult(
                     date=date_str,
                     airline=leg.airline.value if leg.airline else "Unknown",
-                    departure=leg.departure_datetime.strftime("%-I:%M %p") if leg.departure_datetime else "",
-                    arrival=leg.arrival_datetime.strftime("%-I:%M %p") if leg.arrival_datetime else "",
+                    departure=leg.departure_datetime.strftime("%H:%M") if leg.departure_datetime else "",
+                    arrival=leg.arrival_datetime.strftime("%H:%M") if leg.arrival_datetime else "",
                     price=int(f.price),
                     duration=f"{f.duration // 60}h {f.duration % 60}m" if f.duration else "",
                     stops=f.stops or 0,
