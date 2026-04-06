@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """✈️ 항공권 최저가 검색기 — Streamlit GUI v2"""
-import json
 import re
 from datetime import date, datetime, timedelta
-from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -181,9 +179,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── 탭 ──
-tab_oneway, tab_roundtrip, tab_daytrip, tab_saved = st.tabs([
-    "✈️ 편도", "🔄 왕복", "☀️ 당일치기", "📂 저장된 결과"
+tab_oneway, tab_roundtrip, tab_daytrip, tab_history = st.tabs([
+    "✈️ 편도", "🔄 왕복", "☀️ 당일치기", "🕘 최근 검색결과"
 ])
+
+# ── 세션 상태: 최근 검색결과 ──
+if "search_history" not in st.session_state:
+    st.session_state.search_history = []
 
 # ── 사이드바: 프로바이더 설정 ──
 with st.sidebar:
@@ -256,6 +258,11 @@ with tab_oneway:
                 st.subheader("📊 날짜별 가격 추이")
                 chart_df = df[["날짜", "가격"]].set_index("날짜")
                 st.bar_chart(chart_df)
+
+                st.session_state.search_history.insert(0, {
+                    "type": "편도", "route": f"{from_label} → {to_label}",
+                    "best": format_price(best.price), "count": len(results), "df": df,
+                })
             else:
                 st.warning("검색 결과가 없습니다. 날짜나 공항을 확인해주세요.")
 
@@ -327,6 +334,11 @@ with tab_roundtrip:
                     },
                     use_container_width=True, hide_index=True
                 )
+
+                st.session_state.search_history.insert(0, {
+                    "type": "왕복", "route": f"{rt_from} ↔ {rt_to}",
+                    "best": format_price(best.total_price), "count": len(combos), "df": df,
+                })
             else:
                 st.warning("왕복 조합 결과가 없습니다.")
 
@@ -415,59 +427,29 @@ with tab_daytrip:
                     column_config={"검색": st.column_config.LinkColumn("검색", display_text="🔗")},
                     use_container_width=True, hide_index=True
                 )
+
+                st.session_state.search_history.insert(0, {
+                    "type": "당일치기", "route": f"{dt_from} ↔ {dt_to}",
+                    "best": format_price(best.total_price), "count": len(combos), "df": df,
+                })
             else:
                 st.warning("조건에 맞는 당일치기 항공편이 없습니다.")
 
 # ══════════════════════════════════════
 # 저장된 결과 탭
 # ══════════════════════════════════════
-with tab_saved:
-    json_path = Path(__file__).parent / "vacation_results.json"
-    if json_path.exists():
-        raw = json.loads(json_path.read_text())
-        df = pd.DataFrame(raw)
+with tab_history:
+    history = st.session_state.search_history
+    if history:
+        if st.button("🗑️ 기록 초기화", key="clear_history"):
+            st.session_state.search_history = []
+            st.rerun()
 
-        # 요약 카드
-        st.markdown("##### 📊 휴가 항공권 검색 결과 요약")
-        cols = st.columns(4)
-        dests = df["dest"].unique()
-        for i, dest in enumerate(sorted(dests)):
-            sub = df[df["dest"] == dest]
-            best = sub.loc[sub["total"].idxmin()]
-            with cols[i % 4]:
-                st.metric(
-                    label=f"🌏 {dest}",
-                    value=format_price(best["total"]),
-                    delta=f"{best['period']}",
-                    delta_color="off"
-                )
-
-        st.divider()
-
-        # 목적지 필터
-        selected_dest = st.multiselect("목적지 필터", sorted(dests), default=sorted(dests), key="saved_filter")
-        filtered = df[df["dest"].isin(selected_dest)] if selected_dest else df
-
-        # 테이블
-        display_df = filtered.copy()
-        display_df["가는편 가격"] = display_df["out_price"].apply(format_price)
-        display_df["오는편 가격"] = display_df["ret_price"].apply(format_price)
-        display_df["합계"] = display_df["total"].apply(format_price)
-        display_df = display_df.rename(columns={
-            "dest": "목적지", "period": "연휴", "depart": "출발일", "return": "귀국일",
-            "out_airline": "가는편 항공사", "ret_airline": "오는편 항공사"
-        })
-        st.dataframe(
-            display_df[["목적지", "연휴", "출발일", "귀국일", "가는편 항공사", "가는편 가격", "오는편 항공사", "오는편 가격", "합계"]],
-            use_container_width=True, hide_index=True
-        )
-
-        # 차트
-        st.subheader("📊 목적지 × 연휴별 가격 비교")
-        chart_data = filtered.pivot_table(values="total", index="period", columns="dest", aggfunc="min")
-        st.bar_chart(chart_data)
+        for i, h in enumerate(history[:10]):
+            with st.expander(f"{'🔄' if h['type'] == '왕복' else '☀️' if h['type'] == '당일치기' else '✈️'} [{h['type']}] {h['route']} — 최저가 {h['best']} ({h['count']}건)", expanded=(i == 0)):
+                st.dataframe(h["df"], use_container_width=True, hide_index=True)
     else:
-        st.info("vacation_results.json 파일이 없습니다. CLI로 먼저 검색을 실행해주세요.")
+        st.info("검색 결과가 없습니다. 편도/왕복/당일치기 탭에서 검색해보세요.")
 
 # ── 푸터 ──
 st.divider()
